@@ -1,6 +1,9 @@
 'use strict';
 // steps to start the server ..
 require('dotenv').config();
+
+
+// Application Dependencies
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -11,7 +14,15 @@ const superagent = require('superagent');
 const pg = require('pg');
 const client = new pg.Client(process.env.DATABASE_URL);
 
+
+
+
 /////////////////////////////////////////////////////////////////////////////////
+
+
+// ***************************************************** Location Handler ***************************************************************** \\
+
+
 
 app.get('/location', (request, response) => {
   const city = request.query.city;
@@ -46,9 +57,38 @@ app.get('/location', (request, response) => {
     })
     .catch((err) => errorHandler(err, request, response)
     );
+
+
+
 });
 
 ///////////////////////////////////////////////////////////////////////////////////
+
+
+// app.get('/trails', (request, response) => {
+//   superagent(`https://www.hikingproject.com/data/get-trails?lat=${request.query.latitude}&lon=${request.query.longitude}&maxResult=10&key=${process.env.TRAIL_API_KEY}`)
+//     .then((res) => {
+//       const trialData = res.body.trails.map((ourTrail) => {
+//         return new Trail(ourTrail);
+//       });
+//       response.status(200).json(trialData)
+//     })
+//     .catch((error) => errorHandler(error, request, response));
+// });
+//////////////////////////////////////////////////////////////////////////////////
+
+
+// Location constructor..
+function Location(city, geoData) {
+  this.search_query = city;
+  this.formatted_query = geoData[0].display_name;
+  this.latitude = geoData[0].lat;
+  this.longitude = geoData[0].lon;
+}
+
+
+// ***************************************************** Weather Handler ***************************************************************** \\
+
 
 app.get('/weather', (request, response) => {
   const city = request.query.search_query;
@@ -62,7 +102,18 @@ app.get('/weather', (request, response) => {
     .catch((error) => errorHandler(error, request, response));
 });
 
-///////////////////////////////////////////////////////////////////////////////////
+
+
+// Weather Constructor
+function Weather(weatherData) {
+  this.forecast = weatherData.weather.description;
+  this.datetime = new Date(weatherData.valid_date).toString().slice(4, 15);
+}
+
+
+
+// ***************************************************** Trails Handler ***************************************************************** \\
+
 
 app.get('/trails', (request, response) => {
   superagent(`https://www.hikingproject.com/data/get-trails?lat=${request.query.latitude}&lon=${request.query.longitude}&maxResult=10&key=${process.env.TRAIL_API_KEY}`)
@@ -74,19 +125,8 @@ app.get('/trails', (request, response) => {
     })
     .catch((error) => errorHandler(error, request, response));
 });
-//////////////////////////////////////////////////////////////////////////////////
 
-function Location(city, geoData) {
-  this.search_query = city;
-  this.formatted_query = geoData[0].display_name;
-  this.latitude = geoData[0].lat;
-  this.longitude = geoData[0].lon;
-}
 
-function Weather(weatherData) {
-  this.forecast = weatherData.weather.description;
-  this.datetime = new Date(weatherData.valid_date).toString().slice(4, 15);
-}
 
 function Trail(trail) {
   this.name = trail.name;
@@ -96,19 +136,22 @@ function Trail(trail) {
   this.star_votes = trail.starVotes;
   this.summary = trail.summary;
   this.trail_url = trail.url;
-  this.condition_time = trail.conditionDate.slice(11);
-  this.condition_date = trail.conditionDate.slice(0, 10);
+  this.condition_time = trail.conditionDate.slice(0, 9);
+  this.condition_date = trail.conditionDate.slice(11, 8);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+// ***************************************************** Error Handler ***************************************************************** \\
 
 function errorHandler(error, request, response) {
   response.status(500).send(error);
 }
 
-/////////////////////////////////////////////////////////////////////////
 
+// Make sure the server is listeniing for requests
 client
   .connect()
   .then(() => {
@@ -116,6 +159,8 @@ client
       console.log(`PORT ${PORT}`);
     });
   })
+
+  // throwing error
   .catch((err) => {
     throw new Error(err)
   });
@@ -128,8 +173,27 @@ client
 
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////Failed Attempt//////////////////////////////////////////////////////////////////////////////
+
+
+
 
 
 
@@ -138,11 +202,16 @@ client
 
 // // Application Dependencies
 // const express = require('express');
-// const cors = require('cors');
-// const pg = require('pg');
-// const superagent = require('superagent');
-// const PORT = process.env.PORT || 4000;
+
 // const app = express();
+// const PORT = process.env.PORT || 5500;
+// const cors = require('cors');
+// app.use(cors());
+
+
+// const superagent = require('superagent');
+// const pg = require('pg');
+
 // const client = new pg.Client(process.env.DATABASE_URL);
 // client.on('error',err=> {
 //   throw new Error(err);
@@ -151,23 +220,29 @@ client
 
 
 // // Application Setup
-// app.use(cors());
-// app.get('/', (req, res) => {
-//   let search_query  = req.query.search_query;
-//   let formatted_query = req.query.formatted_query;
-//   let  latitude  = req.query.latitude;
-//   let longitude = req.query.longitude;
+
+// app.get('/', (request, response) => {
+//   let search_query  = request.query.search_query;
+//   let formatted_query = request.query.formatted_query;
+//   let  latitude  = request.query. latitude;
+//   let longitude = request.query.longitude;
+
 //   const insertSQL = 'INSERT INTO location(search_query,formatted_query,latitude,longitude) VALUES ($1,$2,$3,$4) RETURNING *';
 //   const searchValue = [search_query, formatted_query, latitude, longitude];
 //   client
 //       .query(insertSQL, searchValue)
 //       .then((results) => {
-//         res.status(200).json(results.rows);
+
+//         response.status(200).json(results.rows);
+
 //       })
 
 
  
 // });
+
+
+
 // // Route Definitions
 // // app.use(express.static('./public'));
 // app.get('/location', locationHandler);
@@ -180,6 +255,12 @@ client
 // app.use(errorHandler);
 
 // // Route Handlers
+
+
+
+// ///////////////////////////////////////////////////////***Location Handler:***////////////////////////////////////////////////////////////////////////////////////
+
+
 // let trailArr = [];
 // function locationHandler(request, response) {
 //   // try {
@@ -199,8 +280,6 @@ client
 //   const city = request.query.city;
 
 //   // const SQL = `SELECT * FROM location WHERE search_query = '${city}' `;
-  
-
 
 //   superagent(
 //     `https://eu1.locationiq.com/v1/search.php?key=${process.env.GEOCODE_API_KEY}&q=${city}&format=json`
@@ -217,6 +296,9 @@ client
 //     .catch((err) => errorHandler(err, request, response));
 // }
 
+
+// // Location Constructor
+
 // function Location(city, geoData) {
 //   this.search_query = city;
 //   this.formatted_query = geoData[0].display_name;
@@ -224,16 +306,19 @@ client
 //   this.longitude = geoData[0].lon;
 //   trailArr.push(this.latitude, this.longitude);
 //   // Location.all.push(this);
-  
 
 // }
-// // Location.all = [];
+// // Location.all = []; 
+
+
 // // console.log(trailArr);
 
 
 
 
-// /////////////////////////////////////////////////////////////////////////////////////////
+
+// /////////////////////////////////////////////////////////***Weather Handler:***/////////////////////////////////////////////////////////////////////////////////
+
 
 // function weatherHandler(request, response) {
 //   // try {
@@ -262,6 +347,9 @@ client
 //     .catch((err) => errorHandler(err, request, response));
 // }
 
+// // Weather Constructor
+
+
 // function Weather(day) {
 //   this.forecast = day.weather.description;
 //   this.time = new Date(day.valid_date).toString().slice(0, 15);
@@ -270,36 +358,23 @@ client
 
 
 
-// //////////////////////////////////////////////////////////////////////////////////////////////////
-// // server.get('/trails', (req, res) => {
-// //   let trailsAllArry = [];
-// //   const key = process.env.TRAIL_API_KEY;
-// //   const lat = req.query.latitude;
-// //   const lon = req.query.longitude;
-// //   const url = `https://www.hikingproject.com/data/get-trails?lat=${lat}&lon=${lon}&maxDistance=200&key=${key}`;
-// //   superagent.get(url)
-// //       .then(data => {
-// //           data.body.trails.map(element => {
-// //               const trial = new Trial(element);
-// //               trailsAllArry.push(trial);
-// //               onErorr()
-// //           });
-// //           res.send(trailsAllArry);
-// //       });
 
-// // });
+// ///////////////////////////////////////////////////////////////////**Trails Handeler**/////////////////////////////////////////////////////////////////////////////////
+
 
 
 // function trailHandler (request, response){
 //     superagent(
-//         `https://www.hikingproject.com/data/get-trails?lat=${request.query.latitude}&lon=${request.query.longitude}&maxResult=10&key=${process.env.TRAIL_API_KEY}`)
+
+//         `https://www.hikingproject.com/data/get-trails?lat=${request.query.latitude}&lon=${request.query.longitude}&maxDistance=500&key=${process.env.TRAIL_API_KEY}`)
 //         .then ((trailRes) => {
 //       // console.log(request.query.latitude, request.query.longitude);
       
-//         const trailSummery=trailRes.body.trails.map((myTrail)=>{
+//         const trailSummery=trailRes.body.trails.map((trailInfo)=>{
 //           // console.log('this',key); 
   
-//             return new Trails(myTrail);                 
+//             return new Trails(trailInfo);                 
+
 //         });
 //         // getTrails(key,lat,lon)
 //         // .then(allTrails => res.status(200).json(trailSummery));
@@ -308,27 +383,41 @@ client
 //     })
 //     .catch((err) => errorHandler(err, request, response));
 // }
+
+
+// // Trails Constructor:
+
+
 // function Trails(trailInfo){
 //     this.name = trailInfo.name;
 //     this.location = trailInfo.location;
 //     this.length = trailInfo.length;
 //     this.stars = trailInfo.stars;
-//     this.star_votes = trailInfo.star_votes;
+//     this.star_votes = trailInfo.starVotes;
 //     this.summary = trailInfo.summary;
-//     this.trail_url = trailInfo.trail_url;
-//     this.conditions = trailInfo.conditions;
-//     this.condition_date = trailInfo.condition_date.slice(11);
-//     this.condition_time = trailInfo.condition_time.slice(0,10);
+//     this.trail_url = trailInfo.url;
+//     this.conditions = trailInfo.conditionStatus;
+//     this.condition_date = trailInfo.conditionDate(0, 9);
+//     this.condition_time = trailInfo.conditionDate.slice(11, 8);
 //     //.toString().slice(12, 19);
 // }
-// // error handeling
+
+
+// ////////////////////////////////////////////////////***error handeling***//////////////////////////////////////////////////////////////////////
+
+
+
 // function notFoundHandler(request, response) {
 //     response.status(404).send('huh?');
 //   }
 //   function errorHandler(error, request, response) {
 //     response.status(500).send(error);
 //   }
-//   // Make sure the server is listening for requests
+
+
+
+//   // Make sure the server is listeniing for requests
+
 //   client
 //   .connect()
 //   .then(()=>{
